@@ -1,0 +1,20 @@
+{
+  "name": "@editorjs/univer-datasource-entry",
+  "version": "0.1.0",
+  "description": "QNotes univer datasource append-only entry block tool for Editor.js",
+  "license": "MIT",
+  "main": "./dist/univerDatasourceEntry.umd.js",
+  "module": "./dist/univerDatasourceEntry.mjs",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^4.5.0",
+    "vite-plugin-css-injected-by-js": "^3.3.0"
+  }
+}
