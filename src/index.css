@@ -7,6 +7,7 @@
   --ude-accent: #12726b;
   --ude-accent-soft: #e6f5f2;
   --ude-danger: #b42318;
+  position: relative;
   border: 1px solid var(--ude-border);
   border-radius: 14px;
   background:
@@ -99,8 +100,7 @@
 }
 
 .cdx-univer-datasource-entry__input,
-.cdx-univer-datasource-entry__select,
-.cdx-univer-datasource-entry__cell-input {
+.cdx-univer-datasource-entry__select {
   min-height: 34px;
   border: 1px solid var(--ude-border);
   border-radius: 10px;
@@ -202,13 +202,13 @@
 .cdx-univer-datasource-entry__table th,
 .cdx-univer-datasource-entry__table td {
   border: 1px solid #e4e9f1;
-  padding: 8px;
   text-align: left;
   vertical-align: top;
   min-width: 140px;
 }
 
 .cdx-univer-datasource-entry__table th {
+  padding: 8px 10px;
   background: #f4fbfa;
   color: #355853;
   font-weight: 700;
@@ -223,21 +223,51 @@
   background: #fff;
 }
 
+.cdx-univer-datasource-entry__table td:first-child {
+  padding: 8px 10px;
+  vertical-align: middle;
+}
+
 .cdx-univer-datasource-entry__table th:last-child,
 .cdx-univer-datasource-entry__table td:last-child {
   min-width: 86px;
   width: 86px;
 }
 
+.cdx-univer-datasource-entry__table td:last-child {
+  padding: 3px 6px;
+  vertical-align: middle;
+}
+
 .cdx-univer-datasource-entry__table th:first-child {
   background: #eef8f6;
 }
 
-.cdx-univer-datasource-entry__cell-input {
-  width: 100%;
-  resize: vertical;
-  padding: 8px 10px;
+.cdx-univer-datasource-entry__cell {
+  box-sizing: border-box;
+  min-height: 33px;
+  padding: 7px 10px;
   line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  cursor: text;
+}
+
+.cdx-univer-datasource-entry__table .cdx-univer-datasource-entry__button.is-danger {
+  width: 100%;
+  min-height: 27px;
+  padding: 0 8px;
+}
+
+.cdx-univer-datasource-entry__cell:focus {
+  outline: 2px solid rgba(18, 114, 107, 0.18);
+  outline-offset: -2px;
+  background: #f8fffd;
+}
+
+.cdx-univer-datasource-entry__cell[data-placeholder]:empty::before {
+  content: attr(data-placeholder);
+  color: #93a1b5;
 }
 
 @media (max-width: 900px) {
@@ -256,4 +286,216 @@
   .cdx-univer-datasource-entry__summary {
     grid-template-columns: 1fr;
   }
+}
+
+/* Token input area */
+.cdx-univer-datasource-entry__field--span-full {
+  grid-column: 1 / -1;
+}
+
+.cdx-univer-datasource-entry__input--mono {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 12px;
+  letter-spacing: -0.02em;
+}
+
+.cdx-univer-datasource-entry__token-status {
+  margin-top: 8px;
+  min-height: 18px;
+  font-size: 12px;
+  color: var(--ude-muted);
+}
+
+.cdx-univer-datasource-entry__token-status.is-error {
+  color: var(--ude-danger);
+}
+
+.cdx-univer-datasource-entry__token-status.is-success {
+  color: #1a7f37;
+  font-weight: 600;
+}
+
+/* Assist dropdown */
+.cdx-assist-dropdown {
+  position: absolute;
+  z-index: 1000;
+  background: #fff;
+  border: 1px solid var(--ude-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  max-height: 240px;
+  overflow-y: auto;
+  font-size: 13px;
+}
+
+.cdx-assist-dropdown__item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  padding: 6px 12px;
+  cursor: pointer;
+  color: var(--ude-text);
+  border-bottom: 1px solid #f0f2f5;
+}
+
+.cdx-assist-dropdown__item:last-child {
+  border-bottom: none;
+}
+
+.cdx-assist-dropdown__item:hover {
+  background: var(--ude-accent-soft);
+}
+
+.cdx-assist-dropdown__cell {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.cdx-assist-dropdown__label {
+  font-size: 10px;
+  color: var(--ude-muted);
+  font-weight: 600;
+}
+
+.cdx-assist-dropdown__cell.is-match {
+  font-weight: 700;
+  color: var(--ude-accent);
+}
+
+/* Circular submit button in top bar */
+.cdx-univer-datasource-entry__submit-btn {
+  appearance: none;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  background: var(--ude-accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(18, 114, 107, 0.3);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.cdx-univer-datasource-entry__submit-btn:hover:not(:disabled) {
+  transform: scale(1.08);
+  box-shadow: 0 4px 14px rgba(18, 114, 107, 0.4);
+}
+
+.cdx-univer-datasource-entry__submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Add-row footer row */
+.cdx-univer-datasource-entry__add-row td {
+  padding: 8px 12px !important;
+  text-align: left;
+  color: var(--ude-muted);
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.cdx-univer-datasource-entry__add-row:hover td {
+  background: var(--ude-accent-soft);
+  color: var(--ude-accent);
+}
+
+.cdx-univer-datasource-entry__add-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px dashed var(--ude-border);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+.cdx-univer-datasource-entry__add-row:hover .cdx-univer-datasource-entry__add-icon {
+  border-color: var(--ude-accent);
+}
+
+
+/* Submit log panel */
+.cdx-univer-datasource-entry__submit-log {
+  margin: 12px 0;
+  padding: 12px 14px;
+  border: 1px solid #b8e6d8;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f0faf7 0%, #e6f5f2 100%);
+}
+
+.cdx-submit-log__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--ude-accent);
+  font-weight: 700;
+}
+
+.cdx-submit-log__icon {
+  font-size: 14px;
+}
+
+.cdx-submit-log__title {
+  font-weight: 700;
+}
+
+.cdx-submit-log__time {
+  font-weight: 400;
+  color: var(--ude-muted);
+  font-size: 11px;
+  margin-left: auto;
+}
+
+.cdx-submit-log__body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cdx-submit-log__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.7);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ude-text);
+}
+
+.cdx-submit-log__idx {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ude-accent);
+  min-width: 20px;
+}
+
+.cdx-submit-log__cell {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+}
+
+.cdx-submit-log__label {
+  font-size: 10px;
+  color: var(--ude-muted);
+  font-weight: 600;
 }
