@@ -732,16 +732,22 @@ class UniverDatasourceEntryTool {
       return false;
     }
 
-    // Use shared crypto module or fallback
+    // Prefer server-side decoding so LAN HTTP deployments do not depend on Web Crypto.
     const crypto = (typeof window !== 'undefined' && window.UniverTokenCrypto) ? window.UniverTokenCrypto : null;
-    if (!crypto || typeof crypto.decrypt !== 'function') {
+    if (typeof this.config.decodeToken !== 'function' && (!crypto || typeof crypto.decrypt !== 'function')) {
       this.setTokenStatus('Token 解密模块未加载。', true);
       if (!opts.silent) this.setStatus('Token 解密模块未加载。', true, true);
       return false;
     }
 
     try {
-      const payload = await crypto.decrypt(tokenStr, userId);
+      let payload;
+      if (typeof this.config.decodeToken === 'function') {
+        const result = await this.config.decodeToken(tokenStr);
+        payload = result && result.payload ? result.payload : result;
+      } else {
+        payload = await crypto.decrypt(tokenStr, userId);
+      }
       // Auto-fill configuration from token
       if (payload.note_id != null) {
         this.data.noteId = toPositiveInt(payload.note_id);
