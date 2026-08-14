@@ -59,6 +59,7 @@ function normalizeRow(row) {
 function normalizeData(source) {
   const data = source && typeof source === 'object' ? source : {};
   const rawAssistCols = Array.isArray(data.allowedAssistColumns) ? data.allowedAssistColumns : [];
+  const rawHiddenCols = Array.isArray(data.hiddenColumnKeys) ? data.hiddenColumnKeys : [];
   return {
     noteId: toPositiveInt(data.noteId),
     query: typeof data.query === 'string' ? data.query : '',
@@ -67,6 +68,7 @@ function normalizeData(source) {
     headerRow: toNonNegativeInt(data.headerRow, 0),
     encryptedToken: typeof data.encryptedToken === 'string' ? data.encryptedToken : '',
     allowedAssistColumns: rawAssistCols.filter((c) => typeof c === 'string' && c),
+    hiddenColumnKeys: Array.from(new Set(rawHiddenCols.filter((c) => typeof c === 'string' && c))),
     draftRows: Array.isArray(data.draftRows) ? data.draftRows.map(normalizeRow) : [],
     lastSubmitLog: (data.lastSubmitLog && typeof data.lastSubmitLog === 'object') ? data.lastSubmitLog : null
   };
@@ -100,13 +102,15 @@ class UniverDatasourceEntryTool {
       selectedSourceKey: false,
       sheetKey: false,
       headerRow: false,
+      hiddenColumnKeys: false,
       draftRows: {},
       lastSubmitLog: false
     };
   }
 
-  constructor({ data, config, readOnly }) {
+  constructor({ data, config, readOnly, api }) {
     this.config = config || {};
+    this.api = api || null;
     this.readOnly = !!readOnly;
     this.data = normalizeData(data);
     this.sourceItems = [];
@@ -157,12 +161,13 @@ class UniverDatasourceEntryTool {
 
   applyGridPaste(startRowIndex, startColumnIndex, grid) {
     const rows = Array.isArray(grid) ? grid : [];
-    if (!rows.length || !this.columns.length) return;
+    const visibleColumns = this.getVisibleColumns();
+    if (!rows.length || !visibleColumns.length) return;
     rows.forEach((cells, rowOffset) => {
       const targetRowIndex = startRowIndex + rowOffset;
       this.ensureRowExists(targetRowIndex);
       (Array.isArray(cells) ? cells : []).forEach((cellValue, colOffset) => {
-        const targetColumn = this.columns[startColumnIndex + colOffset];
+        const targetColumn = visibleColumns[startColumnIndex + colOffset];
         if (!targetColumn) return;
         this.updateDraftCell(targetRowIndex, targetColumn.key, cellValue);
       });
@@ -175,6 +180,7 @@ class UniverDatasourceEntryTool {
     const wrapper = document.createElement('div');
     wrapper.className = 'cdx-univer-datasource-entry';
     wrapper.innerHTML = `
+      <div class="cdx-univer-datasource-entry__editor-anchor" contenteditable="true" tabindex="-1" aria-hidden="true"></div>
       <div class="cdx-univer-datasource-entry__top">
         <div class="cdx-univer-datasource-entry__meta">
           <div class="cdx-univer-datasource-entry__eyebrow">${EYEBROW_LABEL}</div>
@@ -231,6 +237,14 @@ class UniverDatasourceEntryTool {
         if (el) el.disabled = true;
       });
     }
+
+    wrapper.addEventListener('mousedown', () => {
+      window.setTimeout(() => {
+        if (this.api && this.api.toolbar && typeof this.api.toolbar.open === 'function') {
+          this.api.toolbar.open();
+        }
+      }, 0);
+    });
 
     this.renderDraftTable();
     this.renderSubmitLog();
@@ -373,6 +387,26 @@ class UniverDatasourceEntryTool {
     // Summary section removed; method kept as no-op for call-site compatibility
   }
 
+  getVisibleColumns() {
+    const hidden = new Set(Array.isArray(this.data.hiddenColumnKeys) ? this.data.hiddenColumnKeys : []);
+    return (Array.isArray(this.columns) ? this.columns : []).filter((column) => column && !hidden.has(column.key));
+  }
+
+  hideColumn(columnKey) {
+    if (this.readOnly || !columnKey) return;
+    const hidden = new Set(Array.isArray(this.data.hiddenColumnKeys) ? this.data.hiddenColumnKeys : []);
+    hidden.add(columnKey);
+    this.data.hiddenColumnKeys = Array.from(hidden);
+    this.renderDraftTable();
+  }
+
+  restoreColumn(columnKey) {
+    if (this.readOnly || !columnKey) return;
+    this.data.hiddenColumnKeys = (Array.isArray(this.data.hiddenColumnKeys) ? this.data.hiddenColumnKeys : [])
+      .filter((key) => key !== columnKey);
+    this.renderDraftTable();
+  }
+
   renderDraftTable() {
     const columns = Array.isArray(this.columns) ? this.columns : [];
     const rows = Array.isArray(this.data.draftRows) ? this.data.draftRows : [];
@@ -380,11 +414,16 @@ class UniverDatasourceEntryTool {
       this.draftTableEl.innerHTML = `<div class="cdx-univer-datasource-entry__empty">${EMPTY_SOURCE_MESSAGE}</div>`;
       return;
     }
+    const columnKeys = new Set(columns.map((column) => column.key));
+    this.data.hiddenColumnKeys = (Array.isArray(this.data.hiddenColumnKeys) ? this.data.hiddenColumnKeys : [])
+      .filter((key) => columnKeys.has(key));
+    const visibleColumns = this.getVisibleColumns();
+    const hiddenColumns = columns.filter((column) => this.data.hiddenColumnKeys.includes(column.key));
     if (!rows.length) {
       this.data.draftRows = [createBlankRow(columns)];
     }
     const bodyRows = (this.data.draftRows || []).map((row, rowIndex) => {
-      const cells = columns.map((column, columnIndex) => {
+      const cells = visibleColumns.map((column, columnIndex) => {
         const value = row && Object.prototype.hasOwnProperty.call(row, column.key) ? row[column.key] : '';
         const editable = this.readOnly ? 'false' : 'true';
         return `<td><div class="cdx-univer-datasource-entry__cell" data-role="cell" data-row-index="${rowIndex}" data-column-index="${columnIndex}" data-column-key="${escapeAttr(column.key)}" contenteditable="${editable}">${escapeHtml(value)}</div></td>`;
@@ -395,12 +434,28 @@ class UniverDatasourceEntryTool {
       return `<tr><td>${rowIndex + 1}</td>${cells}${actionCell}</tr>`;
     }).join('');
     // Add-row button as a table footer row with + icon
-    const addRowSpan = columns.length + 2; // # + columns + action
+    const addRowSpan = visibleColumns.length + 2; // # + visible columns + action
     const addRowHtml = !this.readOnly
       ? `<tr class="cdx-univer-datasource-entry__add-row" data-role="add-row"><td colspan="${addRowSpan}"><span class="cdx-univer-datasource-entry__add-icon">+</span> 新增一行</td></tr>`
       : '';
-    const headerCells = columns.map((column) => `<th>${escapeHtml(column.label || column.key)}</th>`).join('');
+    const headerCells = visibleColumns.map((column) => `
+      <th>
+        <div class="cdx-univer-datasource-entry__column-header">
+          <span>${escapeHtml(column.label || column.key)}</span>
+          ${this.readOnly ? '' : `<button type="button" class="cdx-univer-datasource-entry__hide-column" data-role="hide-column" data-column-key="${escapeAttr(column.key)}" title="隐藏此列" aria-label="隐藏 ${escapeAttr(column.label || column.key)} 列"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3.5 3.5L16.5 16.5M8.3 5.2A8.5 8.5 0 0 1 10 5c4 0 6.5 5 6.5 5a12 12 0 0 1-2 2.8M11.7 14.8A8.5 8.5 0 0 1 10 15c-4 0-6.5-5-6.5-5a12.2 12.2 0 0 1 2-2.8M8.6 8.6a2 2 0 0 0 2.8 2.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`}
+        </div>
+      </th>
+    `).join('');
+    const hiddenColumnsHtml = hiddenColumns.length ? `
+      <div class="cdx-univer-datasource-entry__hidden-columns" contenteditable="false">
+        <span class="cdx-univer-datasource-entry__hidden-columns-label">已隐藏列</span>
+        ${hiddenColumns.map((column) => this.readOnly
+          ? `<span class="cdx-univer-datasource-entry__restore-column is-readonly">${escapeHtml(column.label || column.key)}</span>`
+          : `<button type="button" class="cdx-univer-datasource-entry__restore-column" data-role="restore-column" data-column-key="${escapeAttr(column.key)}" title="恢复显示">${escapeHtml(column.label || column.key)}</button>`).join('')}
+      </div>
+    ` : '';
     this.draftTableEl.innerHTML = `
+      ${hiddenColumnsHtml}
       <div class="cdx-univer-datasource-entry__table-wrap">
         <table class="cdx-univer-datasource-entry__table">
           <thead>
@@ -423,7 +478,7 @@ class UniverDatasourceEntryTool {
           const columnKey = String(el.getAttribute('data-column-key') || '');
           if (!Number.isFinite(rowIndex) || rowIndex < 0 || !columnKey) return;
           this.updateDraftCell(rowIndex, columnKey, el.textContent || '');
-          if (Number.isFinite(columnIndex) && columnIndex === columns.length - 1 && rowIndex === this.data.draftRows.length - 1) {
+          if (Number.isFinite(columnIndex) && columnIndex === visibleColumns.length - 1 && rowIndex === this.data.draftRows.length - 1) {
             this.renderDraftTable();
           }
           // Assist search: trigger dropdown if column is allowed
@@ -466,12 +521,12 @@ class UniverDatasourceEntryTool {
             event.preventDefault();
             let targetRowIndex = rowIndex;
             let targetColumnIndex = columnIndex + (event.shiftKey ? -1 : 1);
-            if (targetColumnIndex >= columns.length) {
+            if (targetColumnIndex >= visibleColumns.length) {
               targetRowIndex += 1;
               targetColumnIndex = 0;
             } else if (targetColumnIndex < 0) {
               targetRowIndex = Math.max(0, rowIndex - 1);
-              targetColumnIndex = columns.length - 1;
+              targetColumnIndex = visibleColumns.length - 1;
             }
             this.ensureRowExists(targetRowIndex);
             this.renderDraftTable();
@@ -507,6 +562,12 @@ class UniverDatasourceEntryTool {
       if (addRowEl) {
         addRowEl.addEventListener('click', () => { this.addDraftRow(); });
       }
+      this.draftTableEl.querySelectorAll('[data-role="hide-column"]').forEach((el) => {
+        el.addEventListener('click', () => { this.hideColumn(el.getAttribute('data-column-key')); });
+      });
+      this.draftTableEl.querySelectorAll('[data-role="restore-column"]').forEach((el) => {
+        el.addEventListener('click', () => { this.restoreColumn(el.getAttribute('data-column-key')); });
+      });
     }
   }
 
@@ -773,7 +834,8 @@ class UniverDatasourceEntryTool {
       this.setTokenStatus('✅ Token 解析成功，配置已自动填充。', false);
       // Hide the entire Token import section after successful parse
       if (this.tokenSectionEl) {
-        this.tokenSectionEl.style.display = 'none';
+        this.tokenSectionEl.remove();
+        this.tokenSectionEl = null;
       }
       if (!opts.silent) this.setStatus('Token 解析成功，数据源配置已自动填充。', false, true);
       return true;
@@ -841,6 +903,7 @@ class UniverDatasourceEntryTool {
       headerRow: toNonNegativeInt(this.data.headerRow, 0) || 0,
       encryptedToken: this.data.encryptedToken || '',
       allowedAssistColumns: Array.isArray(this.data.allowedAssistColumns) ? this.data.allowedAssistColumns : [],
+      hiddenColumnKeys: Array.isArray(this.data.hiddenColumnKeys) ? this.data.hiddenColumnKeys : [],
       draftRows: Array.isArray(this.data.draftRows) ? this.data.draftRows.map(normalizeRow) : [],
       lastSubmitLog: this.data.lastSubmitLog || null
     };

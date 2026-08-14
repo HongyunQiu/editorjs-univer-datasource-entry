@@ -17,6 +17,17 @@
   padding: 14px;
 }
 
+.cdx-univer-datasource-entry__editor-anchor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 24px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .cdx-univer-datasource-entry__top,
 .cdx-univer-datasource-entry__meta,
 .cdx-univer-datasource-entry__field {
@@ -212,6 +223,81 @@
   background: #f4fbfa;
   color: #355853;
   font-weight: 700;
+}
+
+.cdx-univer-datasource-entry__column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.cdx-univer-datasource-entry__hide-column {
+  appearance: none;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid #c8ddd8;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.72);
+  color: #71857f;
+  padding: 0;
+  cursor: pointer;
+}
+
+.cdx-univer-datasource-entry__hide-column:hover {
+  border-color: var(--ude-accent);
+  background: #dcefeb;
+  color: var(--ude-accent);
+}
+
+.cdx-univer-datasource-entry__hide-column svg {
+  width: 14px;
+  height: 14px;
+}
+
+.cdx-univer-datasource-entry__hidden-columns {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  padding: 7px 9px;
+  border: 1px dashed #c8ddd8;
+  border-radius: 9px;
+  background: #f7fcfb;
+}
+
+.cdx-univer-datasource-entry__hidden-columns-label {
+  color: var(--ude-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.cdx-univer-datasource-entry__restore-column {
+  appearance: none;
+  border: 1px solid #c8ddd8;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ude-accent);
+  padding: 3px 9px;
+  font-size: 11px;
+  line-height: 1.35;
+  cursor: pointer;
+}
+
+.cdx-univer-datasource-entry__restore-column:hover {
+  border-color: var(--ude-accent);
+  background: var(--ude-accent-soft);
+}
+
+.cdx-univer-datasource-entry__restore-column.is-readonly {
+  color: var(--ude-muted);
+  cursor: default;
 }
 
 .cdx-univer-datasource-entry__table th:first-child,
